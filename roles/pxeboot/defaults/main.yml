@@ -1,0 +1,61 @@
+---
+# defaults file
+#################### dnsmasq variables
+
+pxe_server_nic: "enp1s0"
+dhcp_domain: "home.lan"
+dhcp_gw: "192.168.1.1"
+dhcp_range: "192.168.1.10,192.168.1.240"
+netmask: "255.255.255.0"
+lease_time: "1h"
+pxe_server_ip: "192.168.1.2"
+pxe_server_name: "pxe"
+dns_ip: "192.168.1.5"
+broadcast_address: "192.168.1.255"
+ntp_server: "192.168.1.1"
+site_message: "Your Site Name PXE Boot Server"
+work_dir: ./work_dir
+
+#################### kickstart variables
+
+
+storage_device: "sda"
+user_name: "sampleuser"
+user_uid: "1000"
+user_gecos: "Your Name Here"
+encrypted_pw: Redacted
+TZ: America/Chicago
+SSH_KEY: "STUB"
+
+#################### variables for mounting Rocky Linux ISO
+
+linux_iso: http://rocky.centos-repo.net/8.6/isos/x86_64/Rocky-8.6-x86_64-dvd1.iso
+iso_target: /tmp/Rocky-8.6-x86_64-dvd1.iso
+rockyiso_sum: sha256:1d48e0af63d07ff4e582a1819348e714c694e7fd33207f48879c2bc806960786
+mount_dir: /tmp_mnt_dir
+
+#################### variables for mounting Debian ISO
+
+debian_net_installer: http://ftp.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/netboot.tar.gz
+debian_nonfree: http://cdimage.debian.org/cdimage/unofficial/non-free/firmware/stable/current/firmware.cpio.gz
+net_boot: /tmp/netboot.tar.gz
+debian_iso: https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/current/amd64/iso-cd/firmware-11.5.0-amd64-netinst.iso
+net_boot_fw: /tmp/newinit/firmware.cpio.gz
+debian_iso_target: ./debian-11.5.0-amd64-netinst.iso
+
+#################### Servers in the environment 
+servers:
+  hostname: 
+    - testpve.home.lan:
+      - Server_IP: 192.168.1.91
+      - Server_MAC: 40-a8-f0-40-43-86
+      - Server_NIC: eno1
+      - Server_boot: sda
+      - Server_TYPE: proxmox
+    - testrl.home.lan:
+      - Server_IP: 192.168.1.92
+      - Server_MAC: f8-b1-56-a8-20-b4
+      - Server_NIC: eno1
+      - Server_boot: sda
+      - Server_TYPE: rocky
+

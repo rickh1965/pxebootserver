@@ -1,0 +1,142 @@
+#### Preseed preconfiguration file (for Debian bullseye)
+
+# Debian 11 Fully Automated 
+
+
+### Partman early command
+### Kernel parameter
+#d-i debian-installer/add-kernel-opts string net.ifnames=0 biosdevname=0 hostname=unassigned-hostname domain=unassigned-domain
+#d-i debconf/priority critical
+#d-i debian-installer/add-kernel-opts string net.ifnames=0 biosdevname=0 console=ttyS0,19200n8
+
+### Localization
+d-i debian-installer/locale string en_US
+d-i debian-installer/language string en
+d-i debian-installer/country string US
+d-i localechooser/supported-locales multiselect en_US.UTF-8
+
+### Keyboard selection
+d-i keyboard-configuration/xkb-keymap select us
+
+###  Network configuration
+#Configure first NIC with link without asking
+d-i netcfg/choose_interface select auto
+
+#Configure network with dhcp
+d-i netcfg/use_dhcp string true
+d-i netcfg/link_wait_timeout string 10
+d-i netcfg/dhcp_timeout string 60
+d-i netcfg/dhcp_failed note
+
+#Configure network manually
+# IPv4 Static network configuration
+#d-i netcfg/get_ipaddress string 192.168.1.120
+#d-i netcfg/get_netmask string 255.255.255.0
+#d-i netcfg/get_gateway string 192.168.1.1
+#d-i netcfg/get_nameservers string 192.168.1.1
+#d-i netcfg/confirm_static boolean true
+
+# Set a hostname
+#d-i netcfg/get_hostname string zhurong
+#d-i netcfg/get_domain string planet.mars
+# Force a hostname
+#d-i netcfg/hostname string zhurong.planet.mars
+# Disable that annoying WEP key dialog
+# d-i netcfg/wireless_wep string
+
+#d-i netcfg/get_hostname=install
+d-i netcfg/get_hostname localhost
+d-i netcfg/get_domain {{ dhcp_domain }}
+d-i netcfg/get_hostname seen true
+d-i netcfg/get_domain seen true
+
+### Mirror settings
+d-i mirror/country string manual
+d-i mirror/http/hostname string httpredir.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+
+### Account setup
+# Skip creation of a normal user account
+d-i passwd/make-user boolean true
+d-i passwd/root-password-crypted password {{ encrypted_pw }}
+d-i passwd/user-fullname string {{ user_gecos }}
+d-i passwd/username string {{ user_name }}
+d-i passwd/user-password-crypted password {{ encrypted_pw }}
+
+### Clock and time zone setup
+# Set hardware clock to UTC
+d-i clock-setup/utc boolean true
+# Set timezone
+d-i time/zone string {{ TZ }}
+# Use NTP clock during installation
+d-i clock-setup/ntp boolean true
+
+### Partitioning
+# !!!DANGER don't use this without knowing what you are doing!!!
+# comment out this block it you want the installer to ask about the
+# partitioning, which is much safer!
+
+# The following will partition disk /dev/sda with an "/boot" partition, a root partition
+# and a swap file. AND WONT ASK TO CONFIRM ANYTHING i.e. it will overwrite existing partitions
+# If you are using old equipment, ensure the small boot partition gets made first! The server
+# will not boot without /boot in the first 100GB. Back in the day that was considered "large". :)
+
+d-i partman/unmount_active boolean true
+d-i partman-auto/disk string /dev/sda
+d-i partman-auto/method string regular
+d-i partman-auto/expert_recipe string                         \
+      boot-root ::                                            \
+              500 1000 1000 ext3                              \
+                      $primary{ } $bootable{ }                \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext3 }    \
+                      mountpoint{ /boot }                     \
+              .                                               \
+              30720 30720 30720 ext4                          \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext3 }    \
+                      mountpoint{ / }                         \
+              .                                               \
+              2048 2048 2048 linux-swap                       \
+                      method{ swap } format{ }                \
+              .
+# This makes partman automatically partition without confirmation
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+### Apt setup
+d-i apt-setup/cdrom/set-first boolean false
+d-i apt-setup/cdrom/set-next boolean false
+d-i apt-setup/cdrom/set-failed boolean false
+d-i apt-setup/services-select multiselect security, updates
+d-i apt-setup/security_host string security.debian.org
+### Package selection
+tasksel tasksel/first multiselect standard
+# Individual additional packages to install
+d-i pkgsel/include string openssh-server vim tmux tcpdump dropbear-initramfs cryptsetup-initramfs python3.9 sudo
+d-i pkgsel/upgrade select full-upgrade
+d-i pkgsel/update-policy select none
+d-i pkgsel/updatedb boolean true
+popularity-contest popularity-contest/participate boolean false
+
+
+### GRUB STUFF
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/bootdev  string default
+
+d-i preseed/late_command string \
+  in-target bash -c "sed -i 's\#PermitRootLogin.*\PermitRootLogin yes\g' /etc/ssh/sshd_config"; \
+  in-target bash -c "sed -i '/^127.0.1.1/d' /etc/hosts"; \
+  mkdir -m 0700 /target/home/{{ user_name }}/.ssh ; \
+    touch /target/home/{{ user_name }}/.ssh/authorized_keys ; \
+    chmod 0600 /target/home/{{ user_name }}/.ssh/authorized_keys ; \
+    chown -R {{ user_uid }}:{{ user_uid }} /target/home/{{ user_name }}/.ssh ; \
+    echo {{ SSH_KEY }} >> /target/home/{{ user_name }}/.ssh/authorized_keys ; \
+    echo "{{ user_name }} ALL=(ALL) NOPASSWD: ALL" >> /target/etc/sudoers.d/{{ user_name }}
+
+# Note: options passed to the installer will be added automatically. 
+# # Avoid that last message about the install being complete.
+d-i finish-install/reboot_in_progress note
